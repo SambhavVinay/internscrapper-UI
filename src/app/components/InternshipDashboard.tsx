@@ -32,6 +32,9 @@ export default function InternshipDashboard() {
   const [elapsed, setElapsed] = useState(0);
   const [engine, setEngine] = useState("");
   const [scrapeUrl, setScrapeUrl] = useState("");
+  const [totalSearches, setTotalSearches] = useState(0);
+  const [deduplicatedCount, setDeduplicatedCount] = useState(0);
+  const [statusMessages, setStatusMessages] = useState<string[]>([]);
 
   const [schools, setSchools] = useState<SchoolsData>({});
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
@@ -58,9 +61,13 @@ export default function InternshipDashboard() {
     setStatus("loading");
     setErrorMsg("");
     setJobs([]);
+    setTotal(0);
     setEngine("");
     setScrapeUrl("");
     setSelectedSchool(null);
+    setTotalSearches(0);
+    setDeduplicatedCount(0);
+    setStatusMessages([]);
 
     // Location is server-fixed (Bengaluru metro via f_PP); show it in the banner
     // for clarity rather than letting the user think they can change it.
@@ -87,18 +94,83 @@ export default function InternshipDashboard() {
         throw new Error(err?.detail || `Server responded with ${res.status}`);
       }
 
-      const data = await res.json();
-
-      if (data.status === "error") {
-        throw new Error(data.message || "Scraping failed");
+      const reader = res.body?.getReader();
+      if (!reader) {
+        throw new Error("Failed to initialize stream reader");
       }
 
-      setJobs(data.data || []);
-      setTotal(data.total || 0);
-      setEngine(data.engine || "");
-      setScrapeUrl(data.url || "");
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        // Keep the last partial line in the buffer
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          try {
+            const chunk = JSON.parse(trimmed);
+            if (chunk.type === "start") {
+              setEngine(chunk.engine || "");
+              if (chunk.total_searches) {
+                setTotalSearches(chunk.total_searches);
+                setStatusMessages([`Multi-search: ${chunk.total_searches} searches queued (parallel)`]);
+              }
+            } else if (chunk.type === "info") {
+              console.log("Scraper info:", chunk.message);
+              // Add to status messages for UI display
+              setStatusMessages((prev) => {
+                const updated = [...prev, chunk.message];
+                // Keep only last 3 messages to avoid clutter
+                return updated.slice(-3);
+              });
+            } else if (chunk.type === "jobs") {
+              if (chunk.data && chunk.data.length > 0) {
+                setJobs((prev) => {
+                  const combined = [...prev, ...chunk.data];
+                  // Deduplicate by link
+                  const seen = new Set();
+                  return combined.filter((job) => {
+                    if (!job.link) return true;
+                    if (seen.has(job.link)) return false;
+                    seen.add(job.link);
+                    return true;
+                  });
+                });
+                // Track deduplication
+                if (chunk.deduplicated) {
+                  setDeduplicatedCount((prev) => prev + chunk.deduplicated);
+                }
+                setTotal((prev) => prev + chunk.data.length);
+                if (chunk.engine) {
+                  setEngine(chunk.engine);
+                }
+              }
+            } else if (chunk.type === "done") {
+              setEngine(chunk.engine || "");
+              setScrapeUrl(chunk.url || "");
+              setTotal(chunk.total || 0);
+              setElapsed(Math.round((Date.now() - startTime) / 1000));
+              setStatus("success");
+            } else if (chunk.type === "error") {
+              throw new Error(chunk.message || "Scraping failed");
+            }
+          } catch (e) {
+            console.error("Failed to parse stream line:", e);
+          }
+        }
+      }
+
+      // Ensure success status if stream ends without done event
+      setStatus((prev) => (prev === "loading" ? "success" : prev));
       setElapsed(Math.round((Date.now() - startTime) / 1000));
-      setStatus("success");
     } catch (err: unknown) {
       setElapsed(Math.round((Date.now() - startTime) / 1000));
       setErrorMsg(
@@ -208,6 +280,9 @@ export default function InternshipDashboard() {
           lastQuery={lastQuery}
           elapsed={elapsed}
           engine={engine}
+          totalSearches={totalSearches}
+          deduplicatedCount={deduplicatedCount}
+          statusMessages={statusMessages}
         />
 
         {/* Constructed URL (debug link) */}
@@ -254,8 +329,8 @@ export default function InternshipDashboard() {
           />
         )}
 
-        {/* ── Skeleton Loading ──────────────────────── */}
-        {status === "loading" && (
+        {/* ── Skeleton Loading (initial) ────────────── */}
+        {status === "loading" && jobs.length === 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
@@ -276,12 +351,28 @@ export default function InternshipDashboard() {
           </div>
         )}
 
-        {/* ── Results Grid ─────────────────────────── */}
-        {status === "success" && filteredJobs.length > 0 && (
+        {/* ── Results Grid (real-time stream) ───────── */}
+        {(status === "success" || (status === "loading" && jobs.length > 0)) && filteredJobs.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             {filteredJobs.map((job, i) => (
               <JobCard key={i} job={job} index={i} />
             ))}
+            
+            {/* Pulsing card appended at the end when still loading additional pages */}
+            {status === "loading" && (
+              <div
+                className="rounded-2xl p-5 animate-pulse"
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--card-border)",
+                }}
+              >
+                <div className="skeleton h-5 w-3/4 mb-3" />
+                <div className="skeleton h-4 w-1/2 mb-2" />
+                <div className="skeleton h-3 w-1/3 mb-3" />
+                <div className="skeleton h-3 w-1/4" />
+              </div>
+            )}
           </div>
         )}
 

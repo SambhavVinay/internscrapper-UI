@@ -9,6 +9,9 @@ interface StatusBannerProps {
   lastQuery: { keywords: string; location: string };
   elapsed: number;
   engine: string;
+  totalSearches?: number;
+  deduplicatedCount?: number;
+  statusMessages?: string[];
 }
 
 export default function StatusBanner({
@@ -18,50 +21,75 @@ export default function StatusBanner({
   lastQuery,
   elapsed,
   engine,
+  totalSearches = 0,
+  deduplicatedCount = 0,
+  statusMessages = [],
 }: StatusBannerProps) {
   if (status === "idle") return null;
 
   if (status === "loading") {
     return (
       <div
-        className="mt-6 rounded-xl px-5 py-4 flex items-center gap-3 animate-slide-down"
+        className="mt-6 rounded-xl px-5 py-4 flex flex-col gap-3 animate-slide-down"
         style={{
           background: "rgba(251, 191, 36, 0.06)",
           border: "1px solid rgba(251, 191, 36, 0.12)",
         }}
       >
-        <svg
-          className="w-4 h-4 shrink-0"
-          style={{
-            color: "var(--warning)",
-            animation: "spin 1s linear infinite",
-          }}
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray="60"
-            strokeDashoffset="20"
-          />
-        </svg>
-        <div>
-          <p
-            className="text-sm font-medium"
-            style={{ color: "var(--warning)" }}
+        <div className="flex items-center gap-3">
+          <svg
+            className="w-4 h-4 shrink-0"
+            style={{
+              color: "var(--warning)",
+              animation: "spin 1s linear infinite",
+            }}
+            fill="none"
+            viewBox="0 0 24 24"
           >
-            Scraping in progress…
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-            Searching for &quot;{lastQuery.keywords}&quot; in {lastQuery.location}.
-            Selenium scroll + HTTP pagination.
-          </p>
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray="60"
+              strokeDashoffset="20"
+            />
+          </svg>
+          <div className="flex-1">
+            <p
+              className="text-sm font-medium"
+              style={{ color: "var(--warning)" }}
+            >
+              Scraping in progress… {total > 0 ? `(found ${total} internships so far)` : ""}
+              {totalSearches > 1 && (
+                <span style={{ color: "var(--muted)", fontSize: "0.85em" }} className="ml-2">
+                  ⟳ {totalSearches} parallel searches
+                </span>
+              )}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+              Searching for &quot;{lastQuery.keywords}&quot; in {lastQuery.location}.
+              {totalSearches > 1 ? " Multi-search with parallel execution." : " Selenium scroll + HTTP pagination."}
+            </p>
+          </div>
         </div>
+
+        {/* Status messages */}
+        {statusMessages.length > 0 && (
+          <div className="flex flex-col gap-1.5 pl-7">
+            {statusMessages.map((msg, idx) => (
+              <p
+                key={idx}
+                className="text-xs font-mono"
+                style={{ color: "var(--muted)", opacity: 0.8 }}
+              >
+                → {msg}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -145,6 +173,14 @@ export default function StatusBanner({
             style={{ color: "var(--success)" }}
           >
             Found {total} internship{total !== 1 ? "s" : ""}
+            {deduplicatedCount > 0 && (
+              <span
+                className="font-normal ml-2 text-xs"
+                style={{ color: "var(--muted)" }}
+              >
+                ({deduplicatedCount} duplicates filtered)
+              </span>
+            )}
             {elapsed > 0 && (
               <span
                 className="font-normal ml-2 text-xs"
@@ -156,6 +192,11 @@ export default function StatusBanner({
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
             &quot;{lastQuery.keywords}&quot; in {lastQuery.location}
+            {totalSearches > 1 && (
+              <span style={{ display: "block", marginTop: "0.25rem" }}>
+                ✓ Multi-search aggregated from {totalSearches} queries
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -168,12 +209,20 @@ export default function StatusBanner({
             background:
               engine === "selenium"
                 ? "rgba(52, 211, 153, 0.1)"
+                : engine === "multi"
+                ? "rgba(168, 85, 247, 0.1)"
                 : "rgba(129, 140, 248, 0.1)",
             color:
-              engine === "selenium" ? "var(--success)" : "var(--accent)",
+              engine === "selenium"
+                ? "var(--success)"
+                : engine === "multi"
+                ? "#a855f7"
+                : "var(--accent)",
             border: `1px solid ${
               engine === "selenium"
                 ? "rgba(52, 211, 153, 0.15)"
+                : engine === "multi"
+                ? "rgba(168, 85, 247, 0.15)"
                 : "rgba(129, 140, 248, 0.15)"
             }`,
           }}
@@ -182,10 +231,14 @@ export default function StatusBanner({
             className="w-1 h-1 rounded-full"
             style={{
               background:
-                engine === "selenium" ? "var(--success)" : "var(--accent)",
+                engine === "selenium"
+                  ? "var(--success)"
+                  : engine === "multi"
+                  ? "#a855f7"
+                  : "var(--accent)",
             }}
           />
-          via {engine}
+          {engine === "multi" ? "Multi-search" : `via ${engine}`}
         </div>
       )}
     </div>

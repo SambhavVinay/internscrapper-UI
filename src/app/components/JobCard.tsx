@@ -134,7 +134,7 @@ export default function JobCard({ job, index }: JobCardProps) {
           className="inline-flex items-center gap-1.5 text-xs font-semibold transition-colors duration-200"
           style={{ color: "var(--accent)" }}
           onMouseEnter={(e) =>
-            (e.currentTarget.style.color = "#a5b4fc")
+            (e.currentTarget.style.color = "#312e81")
           }
           onMouseLeave={(e) =>
             (e.currentTarget.style.color = "var(--accent)")
