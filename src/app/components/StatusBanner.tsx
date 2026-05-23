@@ -14,233 +14,286 @@ interface StatusBannerProps {
   statusMessages?: string[];
 }
 
+/**
+ * Translate raw backend status messages into user-friendly language.
+ * Strips technical jargon (scrape, selenium, HTTP, parallel, etc.)
+ * and replaces with academic/career-focused wording.
+ */
+function sanitizeMessage(msg: string): string {
+  return msg
+    // Remove technical prefixes
+    .replace(/^Multi-search:\s*/i, "")
+    .replace(/^Fallback\s*\[\d+\/\d+\]:\s*/i, "")
+    .replace(/\[\d+\/\d+\]\s*/g, "")
+    // Replace technical terms
+    .replace(/parallel\s+searches?\s+queued\s*\(parallel\)/i, "sources being checked")
+    .replace(/parallel\s+HTTP\s+returned\s+0\s+results.*/i, "Expanding search to additional sources...")
+    .replace(/robust\s+(sequential\s+)?search\s+for/i, "Checking listings for")
+    .replace(/search(es)?\s+queued\s*\(parallel\)/i, "sources being checked")
+    .replace(/parallel\s+searches?/i, "sources")
+    .replace(/Multi-search\s+aggregated\s+from/i, "Aggregated from")
+    .replace(/Multi-search\s+with\s+parallel\s+execution/i, "Checking multiple sources")
+    .replace(/Selenium\s+scroll\s*\+\s*HTTP\s+pagination/i, "Reviewing available listings")
+    .replace(/scraping/gi, "searching")
+    .replace(/scrape/gi, "search")
+    .replace(/scraped/gi, "found")
+    .replace(/\bnew\s+jobs\b/gi, "new opportunities")
+    .replace(/\bjobs?\b/gi, "opportunities")
+    .replace(/\binternships?\b/gi, "opportunities")
+    .replace(/\btotal:\s*/gi, "total: ")
+    .replace(/\bdone\b/gi, "complete")
+    // Clean up stray punctuation
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function StatusBanner({
   status,
   total,
   errorMsg,
   lastQuery,
   elapsed,
-  engine,
   totalSearches = 0,
   deduplicatedCount = 0,
   statusMessages = [],
 }: StatusBannerProps) {
   if (status === "idle") return null;
 
+  /* ── Loading State ─────────────────────────────── */
   if (status === "loading") {
     return (
-      <div
-        className="mt-6 rounded-xl px-5 py-4 flex flex-col gap-3 animate-slide-down"
-        style={{
-          background: "rgba(251, 191, 36, 0.06)",
-          border: "1px solid rgba(251, 191, 36, 0.12)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <svg
-            className="w-4 h-4 shrink-0"
+      <div className="mt-6 neo-card-static px-5 py-5 animate-slide-down">
+        <div className="flex items-start gap-4">
+          {/* Animated indicator */}
+          <div
+            className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
             style={{
-              color: "var(--warning)",
-              animation: "spin 1s linear infinite",
+              background: "var(--accent-dim)",
+              border: "2px solid var(--accent)",
             }}
-            fill="none"
-            viewBox="0 0 24 24"
           >
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray="60"
-              strokeDashoffset="20"
-            />
-          </svg>
-          <div className="flex-1">
-            <p
-              className="text-sm font-medium"
-              style={{ color: "var(--warning)" }}
+            <svg
+              className="w-5 h-5"
+              style={{
+                color: "var(--accent)",
+                animation: "spin 1.2s linear infinite",
+              }}
+              viewBox="0 0 24 24"
+              fill="none"
             >
-              Scraping in progress… {total > 0 ? `(found ${total} internships so far)` : ""}
-              {totalSearches > 1 && (
-                <span style={{ color: "var(--muted)", fontSize: "0.85em" }} className="ml-2">
-                  ⟳ {totalSearches} parallel searches
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray="60"
+                strokeDashoffset="20"
+              />
+            </svg>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-sm font-bold"
+              style={{ color: "var(--foreground)" }}
+            >
+              Discovering opportunities...
+              {total > 0 && (
+                <span
+                  className="font-mono ml-2"
+                  style={{ color: "var(--accent)" }}
+                >
+                  {total} found
                 </span>
               )}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-              Searching for &quot;{lastQuery.keywords}&quot; in {lastQuery.location}.
-              {totalSearches > 1 ? " Multi-search with parallel execution." : " Selenium scroll + HTTP pagination."}
+            <p
+              className="text-sm mt-1"
+              style={{ color: "var(--muted)" }}
+            >
+              Searching for &quot;{lastQuery.keywords}&quot; in{" "}
+              {lastQuery.location}.
+              {totalSearches > 1
+                ? ` Checking ${totalSearches} sources simultaneously.`
+                : " Reviewing available listings."}
+            </p>
+
+            {/* Progress steps */}
+            {statusMessages.length > 0 && (
+              <div
+                className="mt-3 pt-3 flex flex-col gap-1.5"
+                style={{ borderTop: "1px solid var(--card-border)" }}
+              >
+                {statusMessages.map((msg, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span
+                      className="shrink-0 w-1.5 h-1.5 rounded-full animate-breathe"
+                      style={{
+                        background: "var(--accent)",
+                        animationDelay: `${idx * 0.3}s`,
+                      }}
+                    />
+                    <p
+                      className="text-xs font-mono"
+                      style={{ color: "var(--muted)" }}
+                    >
+                      {sanitizeMessage(msg)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Error State ───────────────────────────────── */
+  if (status === "error") {
+    return (
+      <div
+        className="mt-6 neo-card-static px-5 py-5 animate-slide-down"
+        style={{ borderColor: "var(--error)" }}
+      >
+        <div className="flex items-start gap-4">
+          <div
+            className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+            style={{
+              background: "rgba(220, 38, 38, 0.08)",
+              border: "2px solid var(--error)",
+            }}
+          >
+            <svg
+              className="w-5 h-5"
+              style={{ color: "var(--error)" }}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-sm font-bold"
+              style={{ color: "var(--error)" }}
+            >
+              Search could not be completed
+              {elapsed > 0 && (
+                <span
+                  className="font-normal ml-2 text-xs font-mono"
+                  style={{ color: "var(--muted)" }}
+                >
+                  after {elapsed}s
+                </span>
+              )}
+            </p>
+            <p
+              className="text-sm mt-1 break-all"
+              style={{ color: "var(--muted)" }}
+            >
+              {sanitizeMessage(errorMsg)}
+            </p>
+            <p
+              className="text-xs mt-2"
+              style={{ color: "var(--muted)" }}
+            >
+              Please try again with different keywords or adjust your filters.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Success State ─────────────────────────────── */
+  return (
+    <div className="mt-6 neo-card-static px-5 py-5 animate-slide-down">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start gap-4">
+          {/* Success icon */}
+          <div
+            className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+            style={{
+              background: "rgba(5, 150, 105, 0.08)",
+              border: "2px solid var(--success)",
+            }}
+          >
+            <svg
+              className="w-5 h-5"
+              style={{ color: "var(--success)" }}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+
+          <div className="min-w-0">
+            <p
+              className="text-sm font-bold"
+              style={{ color: "var(--foreground)" }}
+            >
+              <span style={{ color: "var(--success)" }}>
+                {total} {total === 1 ? "opportunity" : "opportunities"}
+              </span>{" "}
+              discovered
+              {deduplicatedCount > 0 && (
+                <span
+                  className="font-normal ml-2 text-xs"
+                  style={{ color: "var(--muted)" }}
+                >
+                  ({deduplicatedCount} duplicate
+                  {deduplicatedCount !== 1 ? "s" : ""} removed)
+                </span>
+              )}
+            </p>
+            <p
+              className="text-sm mt-1"
+              style={{ color: "var(--muted)" }}
+            >
+              &quot;{lastQuery.keywords}&quot; in {lastQuery.location}
+              {elapsed > 0 && (
+                <span className="font-mono ml-1">
+                  &middot; {elapsed}s
+                </span>
+              )}
+              {totalSearches > 1 && (
+                <span style={{ display: "block", marginTop: "0.25rem" }}>
+                  Aggregated from {totalSearches} sources
+                </span>
+              )}
             </p>
           </div>
         </div>
 
-        {/* Status messages */}
-        {statusMessages.length > 0 && (
-          <div className="flex flex-col gap-1.5 pl-7">
-            {statusMessages.map((msg, idx) => (
-              <p
-                key={idx}
-                className="text-xs font-mono"
-                style={{ color: "var(--muted)", opacity: 0.8 }}
-              >
-                → {msg}
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <div
-        className="mt-6 rounded-xl px-5 py-4 flex items-start gap-3 animate-slide-down"
-        style={{
-          background: "rgba(248, 113, 113, 0.06)",
-          border: "1px solid rgba(248, 113, 113, 0.12)",
-        }}
-      >
-        <svg
-          className="w-4 h-4 mt-0.5 shrink-0"
-          style={{ color: "var(--error)" }}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-          />
-        </svg>
-        <div>
-          <p
-            className="text-sm font-medium"
-            style={{ color: "var(--error)" }}
-          >
-            Scrape failed
-            {elapsed > 0 && (
-              <span
-                className="font-normal ml-2 text-xs"
-                style={{ color: "var(--muted)" }}
-              >
-                after {elapsed}s
-              </span>
-            )}
-          </p>
-          <p
-            className="text-xs mt-0.5 font-mono break-all"
-            style={{ color: "var(--muted)" }}
-          >
-            {errorMsg}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // success
-  return (
-    <div
-      className="mt-6 rounded-xl px-5 py-4 flex items-center justify-between animate-slide-down"
-      style={{
-        background: "rgba(52, 211, 153, 0.06)",
-        border: "1px solid rgba(52, 211, 153, 0.12)",
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <svg
-          className="w-4 h-4 shrink-0"
-          style={{ color: "var(--success)" }}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <div>
-          <p
-            className="text-sm font-medium"
-            style={{ color: "var(--success)" }}
-          >
-            Found {total} internship{total !== 1 ? "s" : ""}
-            {deduplicatedCount > 0 && (
-              <span
-                className="font-normal ml-2 text-xs"
-                style={{ color: "var(--muted)" }}
-              >
-                ({deduplicatedCount} duplicates filtered)
-              </span>
-            )}
-            {elapsed > 0 && (
-              <span
-                className="font-normal ml-2 text-xs"
-                style={{ color: "var(--muted)" }}
-              >
-                in {elapsed}s
-              </span>
-            )}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-            &quot;{lastQuery.keywords}&quot; in {lastQuery.location}
-            {totalSearches > 1 && (
-              <span style={{ display: "block", marginTop: "0.25rem" }}>
-                ✓ Multi-search aggregated from {totalSearches} queries
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* Engine indicator */}
-      {engine && (
+        {/* Completion badge */}
         <div
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold"
           style={{
-            background:
-              engine === "selenium"
-                ? "rgba(52, 211, 153, 0.1)"
-                : engine === "multi"
-                ? "rgba(168, 85, 247, 0.1)"
-                : "rgba(129, 140, 248, 0.1)",
-            color:
-              engine === "selenium"
-                ? "var(--success)"
-                : engine === "multi"
-                ? "#a855f7"
-                : "var(--accent)",
-            border: `1px solid ${
-              engine === "selenium"
-                ? "rgba(52, 211, 153, 0.15)"
-                : engine === "multi"
-                ? "rgba(168, 85, 247, 0.15)"
-                : "rgba(129, 140, 248, 0.15)"
-            }`,
+            background: "rgba(5, 150, 105, 0.08)",
+            color: "var(--success)",
+            border: "2px solid var(--success)",
           }}
         >
-          <span
-            className="w-1 h-1 rounded-full"
-            style={{
-              background:
-                engine === "selenium"
-                  ? "var(--success)"
-                  : engine === "multi"
-                  ? "#a855f7"
-                  : "var(--accent)",
-            }}
-          />
-          {engine === "multi" ? "Multi-search" : `via ${engine}`}
+          Complete
         </div>
-      )}
+      </div>
     </div>
   );
 }

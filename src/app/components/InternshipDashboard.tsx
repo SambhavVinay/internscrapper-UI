@@ -7,6 +7,9 @@ import JobCard from "./JobCard";
 import StatusBanner from "./StatusBanner";
 import SchoolFilter from "./SchoolFilter";
 import type { SchoolsData } from "./SchoolFilter";
+import ThemeToggle from "./ThemeToggle";
+import AcademicNotice from "./AcademicNotice";
+import Footer from "./Footer";
 
 const API_BASE = "http://localhost:8000";
 
@@ -121,10 +124,10 @@ export default function InternshipDashboard() {
               setEngine(chunk.engine || "");
               if (chunk.total_searches) {
                 setTotalSearches(chunk.total_searches);
-                setStatusMessages([`Multi-search: ${chunk.total_searches} searches queued (parallel)`]);
+                setStatusMessages([`Checking ${chunk.total_searches} sources simultaneously`]);
               }
             } else if (chunk.type === "info") {
-              console.log("Scraper info:", chunk.message);
+              console.log("Search info:", chunk.message);
               // Add to status messages for UI display
               setStatusMessages((prev) => {
                 const updated = [...prev, chunk.message];
@@ -160,16 +163,16 @@ export default function InternshipDashboard() {
               setElapsed(Math.round((Date.now() - startTime) / 1000));
               // If partial results, show success with a note
               if (chunk.partial && jobs.length > 0) {
-                setErrorMsg(`Got ${jobs.length} jobs but stream was interrupted: ${chunk.error || "connection lost"}`);
+                setErrorMsg(`Found ${jobs.length} opportunities but the search was interrupted: ${chunk.error || "connection lost"}`);
               }
               setStatus("success");
             } else if (chunk.type === "error") {
               // If we have accumulated jobs, show them as partial success instead of full error
               if (jobs.length > 0) {
-                setErrorMsg(`Got ${jobs.length} jobs before scraping failed: ${chunk.message || "Scraping failed"}`);
+                setErrorMsg(`Found ${jobs.length} opportunities before the search ended: ${chunk.message || "Search failed"}`);
                 setStatus("success");
               } else {
-                throw new Error(chunk.message || "Scraping failed");
+                throw new Error(chunk.message || "Search failed");
               }
             }
           } catch (e) {
@@ -194,91 +197,68 @@ export default function InternshipDashboard() {
     <div className="flex flex-col flex-1 min-h-screen">
       {/* ── Header ──────────────────────────────────── */}
       <header
-        className="sticky top-0 z-50 backdrop-blur-xl border-b"
+        className="sticky top-0 z-50"
         style={{
           background: "var(--header-bg)",
-          borderColor: "var(--card-border)",
+          borderBottom: "2px solid var(--card-border)",
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black"
               style={{
-                background: "var(--accent-dim)",
-                color: "var(--accent)",
+                background: "var(--accent)",
+                color: "#ffffff",
+                border: "2px solid var(--card-border)",
+                boxShadow: "2px 2px 0 var(--shadow-color)",
               }}
             >
-              IS
+              OH
             </div>
             <div>
               <h1
-                className="text-base font-semibold tracking-tight"
+                className="text-base font-bold tracking-tight"
                 style={{ color: "var(--foreground)" }}
               >
-                InternScrapper
+                OpportunityHub
               </h1>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>
-                LinkedIn Internship Intelligence
+              <p className="text-xs font-medium" style={{ color: "var(--muted)" }}>
+                Student Career Discovery
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Engine badge */}
-            {engine && status === "success" && (
-              <div
-                className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider animate-fade-in-up"
-                style={{
-                  background:
-                    engine === "selenium"
-                      ? "rgba(52, 211, 153, 0.1)"
-                      : "rgba(129, 140, 248, 0.1)",
-                  color:
-                    engine === "selenium"
-                      ? "var(--success)"
-                      : "var(--accent)",
-                  border: `1px solid ${engine === "selenium"
-                      ? "rgba(52, 211, 153, 0.15)"
-                      : "rgba(129, 140, 248, 0.15)"
-                    }`,
-                }}
-              >
-                {engine}
-              </div>
-            )}
-
             {/* Status pill */}
             <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold"
               style={{
-                background:
-                  status === "loading"
-                    ? "rgba(251, 191, 36, 0.1)"
-                    : "rgba(52, 211, 153, 0.1)",
-                color:
-                  status === "loading" ? "var(--warning)" : "var(--success)",
+                background: status === "loading" ? "rgba(217, 119, 6, 0.08)" : "rgba(5, 150, 105, 0.08)",
+                color: status === "loading" ? "var(--warning)" : "var(--success)",
+                border: `2px solid ${status === "loading" ? "var(--warning)" : "var(--success)"}`,
               }}
             >
               <span
-                className="w-1.5 h-1.5 rounded-full"
+                className={`w-2 h-2 rounded-full ${status === "loading" ? "animate-breathe" : ""}`}
                 style={{
-                  background:
-                    status === "loading"
-                      ? "var(--warning)"
-                      : "var(--success)",
-                  animation:
-                    status === "loading" ? "pulseGlow 1.5s infinite" : "none",
+                  background: status === "loading" ? "var(--warning)" : "var(--success)",
                 }}
               />
-              {status === "loading" ? "Scraping…" : "System Online"}
+              {status === "loading" ? "Searching..." : "Ready"}
             </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
           </div>
         </div>
       </header>
 
+      {/* ── Academic Notice ──────────────────────────── */}
+      <AcademicNotice />
+
       {/* ── Main ────────────────────────────────────── */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-10">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8">
         {/* Search Form */}
         <SearchForm onSubmit={handleScrape} isLoading={status === "loading"} />
 
@@ -295,14 +275,14 @@ export default function InternshipDashboard() {
           statusMessages={statusMessages}
         />
 
-        {/* Constructed URL (debug link) */}
+        {/* Source link */}
         {scrapeUrl && status === "success" && (
           <div className="mt-3 animate-slide-down">
             <a
               href={scrapeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] font-mono transition-colors duration-200"
+              className="inline-flex items-center gap-2 text-sm font-medium transition-colors duration-200"
               style={{ color: "var(--muted)" }}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.color = "var(--accent)")
@@ -312,7 +292,7 @@ export default function InternshipDashboard() {
               }
             >
               <svg
-                className="w-3 h-3 shrink-0"
+                className="w-4 h-4 shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -324,12 +304,12 @@ export default function InternshipDashboard() {
                   d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.56a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364l1.757 1.757"
                 />
               </svg>
-              Open this search on LinkedIn ↗
+              View on original platform
             </a>
           </div>
         )}
 
-        {/* ── School Filter ─────────────────────────── */}
+        {/* ── School/Department Filter ────────────────── */}
         {status === "success" && jobs.length > 0 && Object.keys(schools).length > 0 && (
           <SchoolFilter
             schools={schools}
@@ -341,14 +321,12 @@ export default function InternshipDashboard() {
 
         {/* ── Skeleton Loading (initial) ────────────── */}
         {status === "loading" && jobs.length === 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-2xl p-5 animate-fade-in-up"
+                className="neo-card-static p-5 animate-fade-in-up"
                 style={{
-                  background: "var(--card)",
-                  border: "1px solid var(--card-border)",
                   animationDelay: `${i * 0.06}s`,
                 }}
               >
@@ -363,19 +341,15 @@ export default function InternshipDashboard() {
 
         {/* ── Results Grid (real-time stream) ───────── */}
         {(status === "success" || (status === "loading" && jobs.length > 0)) && filteredJobs.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8">
             {filteredJobs.map((job, i) => (
               <JobCard key={i} job={job} index={i} />
             ))}
-            
+
             {/* Pulsing card appended at the end when still loading additional pages */}
             {status === "loading" && (
               <div
-                className="rounded-2xl p-5 animate-pulse"
-                style={{
-                  background: "var(--card)",
-                  border: "1px solid var(--card-border)",
-                }}
+                className="neo-card-static p-5 animate-progress-pulse"
               >
                 <div className="skeleton h-5 w-3/4 mb-3" />
                 <div className="skeleton h-4 w-1/2 mb-2" />
@@ -388,52 +362,83 @@ export default function InternshipDashboard() {
 
         {/* ── Empty State (filtered) ────────────────── */}
         {status === "success" && jobs.length > 0 && filteredJobs.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 animate-fade-in-up">
+          <div className="flex flex-col items-center justify-center py-20 animate-fade-in-up">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mb-5"
-              style={{ background: "var(--surface-1)" }}
+              className="w-14 h-14 rounded-xl flex items-center justify-center mb-5"
+              style={{
+                background: "var(--surface-1)",
+                border: "2px solid var(--card-border)",
+              }}
             >
-              🔍
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--muted)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
             </div>
             <p
-              className="text-base font-medium"
+              className="text-base font-bold"
               style={{ color: "var(--foreground)" }}
             >
-              No jobs match this school filter
+              No opportunities match this department
             </p>
-            <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-              Try a different school or clear the filter to see all results.
+            <p className="text-sm mt-1.5" style={{ color: "var(--muted)" }}>
+              Try a different department or clear the filter to see all results.
             </p>
           </div>
         )}
 
         {/* ── Empty State (no results) ──────────────── */}
         {status === "success" && jobs.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 animate-fade-in-up">
+          <div className="flex flex-col items-center justify-center py-20 animate-fade-in-up">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mb-5"
-              style={{ background: "var(--surface-1)" }}
+              className="w-14 h-14 rounded-xl flex items-center justify-center mb-5"
+              style={{
+                background: "var(--surface-1)",
+                border: "2px solid var(--card-border)",
+              }}
             >
-              🔍
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--muted)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+                <path d="M8 11h6" />
+              </svg>
             </div>
             <p
-              className="text-base font-medium"
+              className="text-base font-bold"
               style={{ color: "var(--foreground)" }}
             >
-              No internships found
+              No opportunities matched your search
             </p>
-            <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-              Try different keywords, a broader location, or relax the filters.
+            <p className="text-sm mt-1.5 max-w-sm text-center" style={{ color: "var(--muted)" }}>
+              Try different keywords, a broader location, or adjust the filters to find more opportunities.
             </p>
             {scrapeUrl && (
               <a
                 href={scrapeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 text-xs font-medium transition-colors duration-200"
+                className="mt-4 text-sm font-semibold transition-colors duration-200"
                 style={{ color: "var(--accent)" }}
               >
-                Verify this search on LinkedIn ↗
+                View search on original platform
               </a>
             )}
           </div>
@@ -441,53 +446,64 @@ export default function InternshipDashboard() {
 
         {/* ── Idle State ───────────────────────────── */}
         {status === "idle" && (
-          <div className="flex flex-col items-center justify-center py-24 animate-fade-in-up">
+          <div className="flex flex-col items-center justify-center py-20 animate-fade-in-up">
+            <div
+              className="w-16 h-16 rounded-xl flex items-center justify-center mb-6"
+              style={{
+                background: "var(--accent-dim)",
+                border: "2px solid var(--accent)",
+                boxShadow: "3px 3px 0 var(--shadow-color)",
+              }}
+            >
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </div>
 
             <p
-              className="text-lg font-semibold tracking-tight"
+              className="text-xl font-bold tracking-tight"
               style={{ color: "var(--foreground)" }}
             >
-              Ready to scrape
+              Discover Career Opportunities
             </p>
             <p
-              className="text-sm mt-1.5 max-w-sm text-center leading-relaxed"
+              className="text-sm mt-2 max-w-md text-center leading-relaxed"
               style={{ color: "var(--muted)" }}
             >
-              Enter keywords, tick the{" "}
-              <span style={{ color: "var(--accent)" }}>work-type</span> /{" "}
-              <span style={{ color: "var(--accent)" }}>job-type</span> filters
-              you care about, then hit{" "}
-              <span style={{ color: "var(--accent)" }}>Scrape</span> to pull
-              fresh Bengaluru-metro internships from LinkedIn.
+              Search by role, industry, or department to find relevant
+              opportunities across the Bengaluru metro area. Results are
+              indexed from publicly available listings.
             </p>
             <div
-              className="flex items-center gap-4 mt-6 text-[10px] font-mono uppercase tracking-wider"
-              style={{ color: "var(--muted)" }}
+              className="flex items-center gap-3 mt-6 text-xs font-mono font-medium px-4 py-2 rounded-lg"
+              style={{
+                color: "var(--muted)",
+                background: "var(--surface-1)",
+                border: "1.5px solid var(--card-border)",
+              }}
             >
-              <span>Selenium</span>
-              <span style={{ color: "var(--card-border)" }}>+</span>
-              <span>Playwright</span>
-              <span style={{ color: "var(--card-border)" }}>+</span>
-              <span>BeautifulSoup</span>
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ background: "var(--success)" }}
+              />
+              Index ready &middot; Updated continuously
             </div>
           </div>
         )}
       </main>
 
       {/* ── Footer ──────────────────────────────────── */}
-      <footer
-        className="border-t py-5"
-        style={{ borderColor: "var(--card-border)" }}
-      >
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <p className="text-xs" style={{ color: "var(--muted)" }}>
-            Selenium + Playwright + BeautifulSoup + Next.js
-          </p>
-          <p className="text-xs font-mono" style={{ color: "var(--muted)" }}>
-            localhost:8000
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import ThemeToggle from "./components/ThemeToggle";
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -16,9 +16,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InternScrapper — LinkedIn Internship Intelligence",
+  title: "OpportunityHub — Student Career Discovery",
   description:
-    "Real-time LinkedIn internship scraper powered by Playwright stealth browsing. Find fresh opportunities posted in the last 24 hours.",
+    "A student-led academic platform that indexes publicly available career opportunities to support internship discovery, career exploration, and student employability research.",
 };
 
 export default function RootLayout({
@@ -29,11 +29,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${jakarta.variable} ${jetbrainsMono.variable} antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-screen flex flex-col">
         {children}
-        <ThemeToggle />
       </body>
     </html>
   );

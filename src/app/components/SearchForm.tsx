@@ -57,65 +57,40 @@ export default function SearchForm({ onSubmit, isLoading }: SearchFormProps) {
   const activeFilterCount = [workTypes.length > 0, jobTypes.length > 0].filter(
     Boolean
   ).length;
+
   return (
     <form onSubmit={handleSubmit} className="animate-fade-in-up">
-      <div
-        className="rounded-2xl p-6"
-        style={{
-          background: "var(--card)",
-          border: "1px solid var(--card-border)",
-        }}
-      >
-        {/* ── Primary Row: Keywords + Scrape button ── */}
+      <div className="neo-card-static p-6">
+        {/* ── Primary Row: Keywords + Discover button ── */}
         <div className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1 flex flex-col gap-1.5">
+          <div className="flex-1 flex flex-col gap-2">
             <label
               htmlFor="search-keywords"
-              className="text-xs font-medium tracking-wide uppercase"
+              className="text-xs font-bold tracking-wide uppercase"
               style={{ color: "var(--muted)" }}
             >
-              Keywords
+              Search Opportunities
             </label>
             <input
               id="search-keywords"
               type="text"
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
-              placeholder="e.g. Frontend Developer, Data Analyst"
+              placeholder="e.g. Frontend Developer, Data Analyst, Marketing"
               disabled={isLoading}
-              className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200"
-              style={{
-                background: "var(--surface-1)",
-                border: "1px solid var(--card-border)",
-                color: "var(--foreground)",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "var(--accent)";
-                e.currentTarget.style.boxShadow = "0 0 0 3px var(--accent-dim)";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "var(--card-border)";
-                e.currentTarget.style.boxShadow = "none";
-              }}
+              className="neo-input w-full px-4 py-3 text-sm font-medium"
             />
           </div>
 
           <button
-            id="scrape-button"
+            id="discover-button"
             type="submit"
             disabled={isLoading || !keywords.trim()}
-            className="w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            className="neo-button w-full sm:w-auto px-7 py-3 text-sm font-bold"
             style={{
               background: isLoading ? "var(--surface-2)" : "var(--accent)",
               color: isLoading ? "var(--muted)" : "#fff",
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading)
-                e.currentTarget.style.boxShadow =
-                  "0 0 24px 4px var(--accent-glow)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "none";
+              borderColor: isLoading ? "var(--card-border)" : "var(--accent)",
             }}
           >
             {isLoading ? (
@@ -137,10 +112,25 @@ export default function SearchForm({ onSubmit, isLoading }: SearchFormProps) {
                     strokeDashoffset="20"
                   />
                 </svg>
-                Scraping…
+                Searching...
               </span>
             ) : (
-              "Scrape"
+              <span className="flex items-center gap-2">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                Discover Opportunities
+              </span>
             )}
           </button>
         </div>
@@ -148,7 +138,7 @@ export default function SearchForm({ onSubmit, isLoading }: SearchFormProps) {
         {/* ── Filters Row ───────────────────────────── */}
         <div
           className="mt-5 pt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-          style={{ borderTop: "1px solid var(--card-border)" }}
+          style={{ borderTop: "2px solid var(--card-border)" }}
         >
           {/* Work Type */}
           <FilterGroup label="Work Type">
@@ -164,7 +154,7 @@ export default function SearchForm({ onSubmit, isLoading }: SearchFormProps) {
           </FilterGroup>
 
           {/* Job Type */}
-          <FilterGroup label="Job Type">
+          <FilterGroup label="Opportunity Type">
             {JOB_TYPE_OPTIONS.map((opt) => (
               <ChipToggle
                 key={opt.value}
@@ -177,17 +167,12 @@ export default function SearchForm({ onSubmit, isLoading }: SearchFormProps) {
           </FilterGroup>
 
           {/* Freshness */}
-          <FilterGroup label="Posted Within">
+          <FilterGroup label="Listed Within">
             <select
               value={freshness}
               onChange={(e) => setFreshness(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 py-2 rounded-lg text-xs font-medium outline-none cursor-pointer transition-all duration-200"
-              style={{
-                background: "var(--surface-1)",
-                border: "1px solid var(--card-border)",
-                color: "var(--foreground)",
-              }}
+              className="neo-input w-full px-3 py-2 text-sm font-medium cursor-pointer"
             >
               {FRESHNESS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -199,31 +184,31 @@ export default function SearchForm({ onSubmit, isLoading }: SearchFormProps) {
         </div>
 
         {/* ── Footer hint ───────────────────────────── */}
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between gap-3">
           <p className="text-xs" style={{ color: "var(--muted)" }}>
-            Location is fixed to{" "}
-            <span className="font-medium" style={{ color: "var(--accent)" }}>
+            Opportunities indexed from the{" "}
+            <span className="font-semibold" style={{ color: "var(--accent)" }}>
               Bengaluru metro
-            </span>
-            ; experience is fixed to{" "}
-            <span className="font-medium" style={{ color: "var(--accent)" }}>
-              Internship
+            </span>{" "}
+            area. Experience level:{" "}
+            <span className="font-semibold" style={{ color: "var(--accent)" }}>
+              Entry-level & Internship
             </span>
             .
           </p>
           {activeFilterCount > 0 && (
             <span
-              className="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+              className="shrink-0 px-2 py-0.5 rounded-md text-xs font-bold"
               style={{
                 background: "var(--accent-dim)",
                 color: "var(--accent)",
+                border: "2px solid var(--accent)",
               }}
             >
               {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
             </span>
           )}
         </div>
-
       </div>
     </form>
   );
@@ -241,15 +226,16 @@ function FilterGroup({
   return (
     <div className="flex flex-col gap-2">
       <span
-        className="text-[10px] font-semibold tracking-widest uppercase"
+        className="text-xs font-bold tracking-widest uppercase"
         style={{ color: "var(--muted)" }}
       >
         {label}
       </span>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
+      <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
 }
+
 function ChipToggle({
   label,
   active,
@@ -266,13 +252,11 @@ function ChipToggle({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+      className={`neo-chip px-3 py-1.5 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed ${active ? "active" : ""}`}
       style={{
         background: active ? "var(--accent-dim)" : "var(--surface-1)",
         color: active ? "var(--accent)" : "var(--muted)",
-        border: `1px solid ${
-          active ? "rgba(129,140,248,0.25)" : "var(--card-border)"
-        }`,
+        borderColor: active ? "var(--accent)" : "var(--card-border)",
       }}
     >
       {label}

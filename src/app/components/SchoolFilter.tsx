@@ -26,18 +26,12 @@ export default function SchoolFilter({
   const totalJobs = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
-    <div
-      className="mt-6 rounded-2xl p-4 animate-slide-down"
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--card-border)",
-      }}
-    >
+    <div className="mt-6 neo-card-static p-5 animate-slide-down">
       <p
-        className="text-[10px] font-semibold tracking-widest uppercase mb-3"
+        className="text-xs font-bold tracking-widest uppercase mb-3"
         style={{ color: "var(--muted)" }}
       >
-        Filter by School
+        Filter by Department
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -46,7 +40,7 @@ export default function SchoolFilter({
           label="All"
           count={totalJobs}
           active={selectedSchool === null}
-          title="Show all schools"
+          title="Show all departments"
           onClick={() => onChange(null)}
         />
 
@@ -84,34 +78,20 @@ function SchoolChip({
       type="button"
       onClick={onClick}
       title={title}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer"
+      className={`neo-chip flex items-center gap-2 px-3 py-1.5 text-sm font-medium ${active ? "active" : ""}`}
       style={{
         background: active ? "var(--accent-dim)" : "var(--surface-1)",
         color: active ? "var(--accent)" : "var(--muted)",
-        border: `1px solid ${
-          active ? "rgba(129, 140, 248, 0.25)" : "var(--card-border)"
-        }`,
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          e.currentTarget.style.borderColor = "rgba(129, 140, 248, 0.15)";
-          e.currentTarget.style.color = "var(--foreground)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          e.currentTarget.style.borderColor = "var(--card-border)";
-          e.currentTarget.style.color = "var(--muted)";
-        }
+        borderColor: active ? "var(--accent)" : "var(--card-border)",
       }}
     >
       {label}
       <span
-        className="px-1.5 py-0.5 rounded text-[10px] font-bold tabular-nums"
+        className="px-1.5 py-0.5 rounded text-xs font-bold tabular-nums font-mono"
         style={{
           background: active
-            ? "rgba(129, 140, 248, 0.2)"
-            : "rgba(255, 255, 255, 0.05)",
+            ? "rgba(13, 148, 136, 0.15)"
+            : "var(--surface-2)",
           color: active ? "var(--accent)" : "var(--muted)",
         }}
       >
