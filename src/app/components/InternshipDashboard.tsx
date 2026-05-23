@@ -60,6 +60,90 @@ export default function InternshipDashboard() {
     ? jobs.filter((j) => j.schools.includes(selectedSchool))
     : jobs;
 
+  const processStream = useCallback(async (res: Response, startTime: number) => {
+    const reader = res.body?.getReader();
+    if (!reader) {
+      throw new Error("Failed to initialize stream reader");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let hasJobs = false;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        try {
+          const chunk = JSON.parse(trimmed);
+          if (chunk.type === "start") {
+            setEngine(chunk.engine || "");
+            if (chunk.total_searches) {
+              setTotalSearches(chunk.total_searches);
+              setStatusMessages([`Checking ${chunk.total_searches} sources simultaneously`]);
+            }
+          } else if (chunk.type === "info") {
+            console.log("Search info:", chunk.message);
+            setStatusMessages((prev) => {
+              const updated = [...prev, chunk.message];
+              return updated.slice(-3);
+            });
+          } else if (chunk.type === "jobs") {
+            if (chunk.data && chunk.data.length > 0) {
+              hasJobs = true;
+              setJobs((prev) => {
+                const combined = [...prev, ...chunk.data];
+                const seen = new Set();
+                return combined.filter((job) => {
+                  if (!job.link) return true;
+                  if (seen.has(job.link)) return false;
+                  seen.add(job.link);
+                  return true;
+                });
+              });
+              if (chunk.deduplicated) {
+                setDeduplicatedCount((prev) => prev + chunk.deduplicated);
+              }
+              setTotal((prev) => prev + chunk.data.length);
+              if (chunk.engine) {
+                setEngine(chunk.engine);
+              }
+            }
+          } else if (chunk.type === "done") {
+            setEngine(chunk.engine || "");
+            if (chunk.url) setScrapeUrl(chunk.url);
+            setTotal(chunk.total || 0);
+            setElapsed(Math.round((Date.now() - startTime) / 1000));
+            if (chunk.partial && hasJobs) {
+              setErrorMsg(`Found opportunities but the search was interrupted: ${chunk.error || "connection lost"}`);
+            }
+            setStatus("success");
+          } else if (chunk.type === "error") {
+            if (hasJobs) {
+              setErrorMsg(`Found opportunities before the search ended: ${chunk.message || "Search failed"}`);
+              setStatus("success");
+            } else {
+              throw new Error(chunk.message || "Search failed");
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse stream line:", e);
+        }
+      }
+    }
+
+    setStatus((prev) => (prev === "loading" ? "success" : prev));
+    setElapsed(Math.round((Date.now() - startTime) / 1000));
+  }, []);
+
   const handleScrape = useCallback(async (filters: SearchFilters) => {
     setStatus("loading");
     setErrorMsg("");
@@ -72,8 +156,6 @@ export default function InternshipDashboard() {
     setDeduplicatedCount(0);
     setStatusMessages([]);
 
-    // Location is server-fixed (Bengaluru metro via f_PP); show it in the banner
-    // for clarity rather than letting the user think they can change it.
     setLastQuery({ keywords: filters.keywords, location: "Bengaluru metro" });
 
     const startTime = Date.now();
@@ -83,7 +165,6 @@ export default function InternshipDashboard() {
         keywords: filters.keywords,
         freshness: filters.freshness,
       });
-      // FastAPI collects repeated keys into a list automatically.
       for (const wt of filters.work_types) params.append("work_types", wt);
       for (const jt of filters.job_types) params.append("job_types", jt);
 
@@ -97,93 +178,7 @@ export default function InternshipDashboard() {
         throw new Error(err?.detail || `Server responded with ${res.status}`);
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) {
-        throw new Error("Failed to initialize stream reader");
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        // Keep the last partial line in the buffer
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-
-          try {
-            const chunk = JSON.parse(trimmed);
-            if (chunk.type === "start") {
-              setEngine(chunk.engine || "");
-              if (chunk.total_searches) {
-                setTotalSearches(chunk.total_searches);
-                setStatusMessages([`Checking ${chunk.total_searches} sources simultaneously`]);
-              }
-            } else if (chunk.type === "info") {
-              console.log("Search info:", chunk.message);
-              // Add to status messages for UI display
-              setStatusMessages((prev) => {
-                const updated = [...prev, chunk.message];
-                // Keep only last 3 messages to avoid clutter
-                return updated.slice(-3);
-              });
-            } else if (chunk.type === "jobs") {
-              if (chunk.data && chunk.data.length > 0) {
-                setJobs((prev) => {
-                  const combined = [...prev, ...chunk.data];
-                  // Deduplicate by link
-                  const seen = new Set();
-                  return combined.filter((job) => {
-                    if (!job.link) return true;
-                    if (seen.has(job.link)) return false;
-                    seen.add(job.link);
-                    return true;
-                  });
-                });
-                // Track deduplication
-                if (chunk.deduplicated) {
-                  setDeduplicatedCount((prev) => prev + chunk.deduplicated);
-                }
-                setTotal((prev) => prev + chunk.data.length);
-                if (chunk.engine) {
-                  setEngine(chunk.engine);
-                }
-              }
-            } else if (chunk.type === "done") {
-              setEngine(chunk.engine || "");
-              setScrapeUrl(chunk.url || "");
-              setTotal(chunk.total || 0);
-              setElapsed(Math.round((Date.now() - startTime) / 1000));
-              // If partial results, show success with a note
-              if (chunk.partial && jobs.length > 0) {
-                setErrorMsg(`Found ${jobs.length} opportunities but the search was interrupted: ${chunk.error || "connection lost"}`);
-              }
-              setStatus("success");
-            } else if (chunk.type === "error") {
-              // If we have accumulated jobs, show them as partial success instead of full error
-              if (jobs.length > 0) {
-                setErrorMsg(`Found ${jobs.length} opportunities before the search ended: ${chunk.message || "Search failed"}`);
-                setStatus("success");
-              } else {
-                throw new Error(chunk.message || "Search failed");
-              }
-            }
-          } catch (e) {
-            console.error("Failed to parse stream line:", e);
-          }
-        }
-      }
-
-      // Ensure success status if stream ends without done event
-      setStatus((prev) => (prev === "loading" ? "success" : prev));
-      setElapsed(Math.round((Date.now() - startTime) / 1000));
+      await processStream(res, startTime);
     } catch (err: unknown) {
       setElapsed(Math.round((Date.now() - startTime) / 1000));
       setErrorMsg(
@@ -191,7 +186,40 @@ export default function InternshipDashboard() {
       );
       setStatus("error");
     }
-  }, []);
+  }, [processStream]);
+
+  const reconnectToStream = useCallback(async () => {
+    setStatus("loading");
+    setErrorMsg("");
+    setJobs([]);
+    setTotal(0);
+    setEngine("");
+    setSelectedSchool(null);
+    setTotalSearches(0);
+    setDeduplicatedCount(0);
+    setStatusMessages(["Reconnecting to active search..."]);
+    
+    const startTime = Date.now();
+    try {
+      const res = await fetch(`${API_BASE}/scrape-internships/stream`);
+      if (!res.ok) throw new Error("Failed to reconnect");
+      await processStream(res, startTime);
+    } catch (err) {
+      console.error("Reconnect failed", err);
+      setStatus("idle");
+    }
+  }, [processStream]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/scrape-internships/status`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.is_active || data.has_history) {
+          reconnectToStream();
+        }
+      })
+      .catch(e => console.error("Failed to check scrape status", e));
+  }, [reconnectToStream]);
 
   return (
     <div className="flex flex-col flex-1 min-h-screen">
@@ -230,6 +258,40 @@ export default function InternshipDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Student Dashboard Button */}
+            <a
+              href="/student"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-200"
+              style={{
+                background: "var(--accent-dim)",
+                color: "var(--accent)",
+                border: "2px solid var(--accent)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--accent)";
+                e.currentTarget.style.color = "#ffffff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--accent-dim)";
+                e.currentTarget.style.color = "var(--accent)";
+              }}
+            >
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                />
+              </svg>
+              Student Dashboard
+            </a>
+
             {/* Status pill */}
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold"

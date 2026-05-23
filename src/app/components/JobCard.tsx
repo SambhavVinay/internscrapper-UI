@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { Job } from "./InternshipDashboard";
 
 interface JobCardProps {
@@ -7,8 +8,55 @@ interface JobCardProps {
   index: number;
 }
 
+function useTimeAgo(postedDatetime?: string | null, fallback?: string | null) {
+  const [timeAgo, setTimeAgo] = useState(fallback || "");
+
+  useEffect(() => {
+    if (!postedDatetime) return;
+
+    const calculateTimeAgo = () => {
+      const now = new Date();
+      const posted = new Date(postedDatetime);
+      
+      // Treat invalid dates or date-only strings (YYYY-MM-DD) by falling back to the original string
+      if (isNaN(posted.getTime()) || (postedDatetime && postedDatetime.length <= 10)) {
+        setTimeAgo(fallback || "");
+        return;
+      }
+      
+      const diffMs = now.getTime() - posted.getTime();
+      
+      if (diffMs < 0) {
+        setTimeAgo("Just now");
+        return;
+      }
+      
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffDays > 0) {
+        setTimeAgo(`${diffDays} day${diffDays > 1 ? "s" : ""} ago`);
+      } else if (diffHours > 0) {
+        setTimeAgo(`${diffHours} hour${diffHours > 1 ? "s" : ""} ago`);
+      } else if (diffMins > 0) {
+        setTimeAgo(`${diffMins} minute${diffMins > 1 ? "s" : ""} ago`);
+      } else {
+        setTimeAgo("Just now");
+      }
+    };
+
+    calculateTimeAgo();
+    const interval = setInterval(calculateTimeAgo, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [postedDatetime, fallback]);
+
+  return timeAgo;
+}
+
 export default function JobCard({ job, index }: JobCardProps) {
   const staggerClass = `stagger-${Math.min(index + 1, 10)}`;
+  const timeAgo = useTimeAgo(job.posted_datetime, job.posted);
 
   return (
     <div
@@ -22,7 +70,7 @@ export default function JobCard({ job, index }: JobCardProps) {
         >
           {job.title || "Position Details Pending"}
         </h3>
-        {job.posted && (
+        {timeAgo && (
           <span
             className="shrink-0 px-2 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap"
             style={{
@@ -31,7 +79,7 @@ export default function JobCard({ job, index }: JobCardProps) {
               border: "1.5px solid var(--accent)",
             }}
           >
-            {job.posted}
+            {timeAgo}
           </span>
         )}
       </div>

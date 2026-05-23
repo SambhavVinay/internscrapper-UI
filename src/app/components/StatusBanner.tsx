@@ -20,31 +20,42 @@ interface StatusBannerProps {
  * and replaces with academic/career-focused wording.
  */
 function sanitizeMessage(msg: string): string {
-  return msg
-    // Remove technical prefixes
-    .replace(/^Multi-search:\s*/i, "")
-    .replace(/^Fallback\s*\[\d+\/\d+\]:\s*/i, "")
-    .replace(/\[\d+\/\d+\]\s*/g, "")
-    // Replace technical terms
-    .replace(/parallel\s+searches?\s+queued\s*\(parallel\)/i, "sources being checked")
-    .replace(/parallel\s+HTTP\s+returned\s+0\s+results.*/i, "Expanding search to additional sources...")
-    .replace(/robust\s+(sequential\s+)?search\s+for/i, "Checking listings for")
-    .replace(/search(es)?\s+queued\s*\(parallel\)/i, "sources being checked")
-    .replace(/parallel\s+searches?/i, "sources")
-    .replace(/Multi-search\s+aggregated\s+from/i, "Aggregated from")
-    .replace(/Multi-search\s+with\s+parallel\s+execution/i, "Checking multiple sources")
-    .replace(/Selenium\s+scroll\s*\+\s*HTTP\s+pagination/i, "Reviewing available listings")
-    .replace(/scraping/gi, "searching")
-    .replace(/scrape/gi, "search")
-    .replace(/scraped/gi, "found")
-    .replace(/\bnew\s+jobs\b/gi, "new opportunities")
-    .replace(/\bjobs?\b/gi, "opportunities")
-    .replace(/\binternships?\b/gi, "opportunities")
-    .replace(/\btotal:\s*/gi, "total: ")
-    .replace(/\bdone\b/gi, "complete")
-    // Clean up stray punctuation
-    .replace(/\s+/g, " ")
-    .trim();
+  let remainingText = "";
+  const match = msg.match(/\[(\d+)\/(\d+)\]/);
+  if (match) {
+    const current = parseInt(match[1], 10);
+    const total = parseInt(match[2], 10);
+    const left = total - current;
+    remainingText = ` (${left} sources left)`;
+  }
+
+  return (
+    msg
+      // Remove technical prefixes
+      .replace(/^Multi-search:\s*/i, "")
+      .replace(/^Fallback\s*\[\d+\/\d+\]:\s*/i, "")
+      .replace(/\[\d+\/\d+\]\s*/g, "")
+      // Replace technical terms
+      .replace(/parallel\s+searches?\s+queued\s*\(parallel\)/i, "sources being checked")
+      .replace(/parallel\s+HTTP\s+returned\s+0\s+results.*/i, "Expanding search to additional sources...")
+      .replace(/robust\s+(sequential\s+)?search\s+for/i, "Checking listings for")
+      .replace(/search(es)?\s+queued\s*\(parallel\)/i, "sources being checked")
+      .replace(/parallel\s+searches?/i, "sources")
+      .replace(/Multi-search\s+aggregated\s+from/i, "Aggregated from")
+      .replace(/Multi-search\s+with\s+parallel\s+execution/i, "Checking multiple sources")
+      .replace(/Selenium\s+scroll\s*\+\s*HTTP\s+pagination/i, "Reviewing available listings")
+      .replace(/scraping/gi, "searching")
+      .replace(/scrape/gi, "search")
+      .replace(/scraped/gi, "found")
+      .replace(/\bnew\s+jobs\b/gi, "new opportunities")
+      .replace(/\bjobs?\b/gi, "opportunities")
+      .replace(/\binternships?\b/gi, "opportunities")
+      .replace(/\btotal:\s*/gi, "total: ")
+      .replace(/\bdone\b/gi, "complete")
+      // Clean up stray punctuation
+      .replace(/\s+/g, " ")
+      .trim() + remainingText
+  );
 }
 
 export default function StatusBanner({
@@ -110,16 +121,22 @@ export default function StatusBanner({
                 </span>
               )}
             </p>
-            <p
-              className="text-sm mt-1"
-              style={{ color: "var(--muted)" }}
-            >
-              Searching for &quot;{lastQuery.keywords}&quot; in{" "}
-              {lastQuery.location}.
-              {totalSearches > 1
-                ? ` Checking ${totalSearches} sources simultaneously.`
-                : " Reviewing available listings."}
-            </p>
+            {lastQuery.keywords || lastQuery.location ? (
+              <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+                Searching for &quot;{lastQuery.keywords || "General opportunities"}&quot; in{" "}
+                {lastQuery.location || "Bengaluru metro"}.
+                {totalSearches > 1
+                  ? ` Checking ${totalSearches} sources simultaneously.`
+                  : " Reviewing available listings."}
+              </p>
+            ) : (
+              <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+                Gathering opportunities...
+                {totalSearches > 1
+                  ? ` Checking ${totalSearches} sources simultaneously.`
+                  : " Reviewing available listings."}
+              </p>
+            )}
 
             {/* Progress steps */}
             {statusMessages.length > 0 && (
@@ -263,22 +280,35 @@ export default function StatusBanner({
                 </span>
               )}
             </p>
-            <p
-              className="text-sm mt-1"
-              style={{ color: "var(--muted)" }}
-            >
-              &quot;{lastQuery.keywords}&quot; in {lastQuery.location}
-              {elapsed > 0 && (
-                <span className="font-mono ml-1">
-                  &middot; {elapsed}s
-                </span>
-              )}
-              {totalSearches > 1 && (
-                <span style={{ display: "block", marginTop: "0.25rem" }}>
-                  Aggregated from {totalSearches} sources
-                </span>
-              )}
-            </p>
+            {lastQuery.keywords || lastQuery.location ? (
+              <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+                &quot;{lastQuery.keywords || "General opportunities"}&quot; in {lastQuery.location || "Bengaluru metro"}
+                {elapsed > 0 && (
+                  <span className="font-mono ml-1">
+                    &middot; {elapsed}s
+                  </span>
+                )}
+                {totalSearches > 1 && (
+                  <span style={{ display: "block", marginTop: "0.25rem" }}>
+                    Aggregated from {totalSearches} sources
+                  </span>
+                )}
+              </p>
+            ) : (
+              <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+                General search in Bengaluru metro
+                {elapsed > 0 && (
+                  <span className="font-mono ml-1">
+                    &middot; {elapsed}s
+                  </span>
+                )}
+                {totalSearches > 1 && (
+                  <span style={{ display: "block", marginTop: "0.25rem" }}>
+                    Aggregated from {totalSearches} sources
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
