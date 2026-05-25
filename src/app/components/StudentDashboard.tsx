@@ -17,6 +17,8 @@ interface StudentDashboardData {
   "2_hours": TimeframeData;
   "5_hours": TimeframeData;
   "24_hours": TimeframeData;
+  "1_week": TimeframeData;
+  "1_month": TimeframeData;
 }
 
 export default function StudentDashboard() {
@@ -209,8 +211,8 @@ export default function StudentDashboard() {
         {/* Loading State */}
         {loading && !data && (
           <div className="space-y-8">
-            {[1, 24].map((hours) => (
-              <div key={hours}>
+            {[1, 2, 3, 4, 5, 6].map((idx) => (
+              <div key={idx}>
                 <div className="skeleton h-8 w-48 mb-4" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -261,6 +263,20 @@ export default function StudentDashboard() {
                 title: "5 - 24 Hours Ago",
                 desc: (c: number) => `${c} opportunities from the past 24 hours`,
                 empty: "No opportunities from the past 24 hours",
+                isRecent: false,
+              },
+              {
+                id: "1_week" as const,
+                title: "1 - 7 Days Ago",
+                desc: (c: number) => `${c} opportunities found 1 to 7 days ago`,
+                empty: "No opportunities from the past week",
+                isRecent: false,
+              },
+              {
+                id: "1_month" as const,
+                title: "1 - 4 Weeks Ago",
+                desc: (c: number) => `${c} opportunities found 1 to 4 weeks ago`,
+                empty: "No opportunities from the past month",
                 isRecent: false,
               }
             ].map(section => (
@@ -341,7 +357,9 @@ export default function StudentDashboard() {
           (data["1_hour"]?.count || 0) === 0 && 
           (data["2_hours"]?.count || 0) === 0 && 
           (data["5_hours"]?.count || 0) === 0 && 
-          (data["24_hours"]?.count || 0) === 0 && (
+          (data["24_hours"]?.count || 0) === 0 && 
+          (data["1_week"]?.count || 0) === 0 && 
+          (data["1_month"]?.count || 0) === 0 && (
           <div className="flex flex-col items-center justify-center py-20 animate-fade-in-up">
             <div
               className="w-16 h-16 rounded-xl flex items-center justify-center mb-6"
