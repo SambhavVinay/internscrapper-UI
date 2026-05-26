@@ -7,7 +7,7 @@ import StudentSchoolFilter from "./StudentSchoolFilter";
 import ThemeToggle from "./ThemeToggle";
 import type { Job } from "./InternshipDashboard";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://sambhavvvvv-oppurtunityhub.hf.space";
 
 interface TimeframeData {
   jobs: Job[];

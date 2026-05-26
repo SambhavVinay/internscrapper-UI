@@ -11,7 +11,7 @@ import ThemeToggle from "./ThemeToggle";
 import AcademicNotice from "./AcademicNotice";
 import Footer from "./Footer";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://sambhavvvvv-oppurtunityhub.hf.space";
 
 export interface Job {
   title: string | null;
