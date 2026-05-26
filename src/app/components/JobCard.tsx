@@ -6,6 +6,52 @@ import type { Job } from "./InternshipDashboard";
 interface JobCardProps {
   job: Job;
   index: number;
+  rating?: number; // 1.0–5.0, shown as stars; omit for no stars
+}
+
+// Renders up to 5 stars (filled / half / empty) for a 1–5 float rating.
+function StarRating({ rating }: { rating: number }) {
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    const fill = rating >= i ? 1 : rating >= i - 0.5 ? 0.5 : 0;
+    stars.push(
+      <svg
+        key={i}
+        className="w-3.5 h-3.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ flexShrink: 0 }}
+      >
+        {/* Empty star background */}
+        <path
+          d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+          fill={fill === 0 ? "var(--card-border)" : fill === 1 ? "var(--accent)" : "url(#half)"}
+          stroke={fill === 0 ? "var(--card-border)" : "var(--accent)"}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {fill === 0.5 && (
+          <defs>
+            <linearGradient id="half">
+              <stop offset="50%" stopColor="var(--accent)" />
+              <stop offset="50%" stopColor="var(--card-border)" />
+            </linearGradient>
+          </defs>
+        )}
+      </svg>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">{stars}</div>
+      <span className="text-xs font-bold ml-1" style={{ color: "var(--accent)" }}>
+        {rating.toFixed(1)}
+      </span>
+      <span className="text-xs" style={{ color: "var(--muted)" }}>/ 5</span>
+    </div>
+  );
 }
 
 function useTimeAgo(postedDatetime?: string | null, fallback?: string | null) {
@@ -54,7 +100,7 @@ function useTimeAgo(postedDatetime?: string | null, fallback?: string | null) {
   return timeAgo;
 }
 
-export default function JobCard({ job, index }: JobCardProps) {
+export default function JobCard({ job, index, rating }: JobCardProps) {
   const staggerClass = `stagger-${Math.min(index + 1, 10)}`;
   const timeAgo = useTimeAgo(job.posted_datetime, job.posted);
 
@@ -103,6 +149,21 @@ export default function JobCard({ job, index }: JobCardProps) {
           {job.company || "Organization Pending"}
         </p>
       </div>
+
+      {/* Star Rating (LLM-generated, ephemeral) */}
+      {rating !== undefined && (
+        <div
+          className="flex items-center gap-2 mb-2 px-2 py-1 rounded-md"
+          style={{
+            background: "var(--accent-dim)",
+            border: "1px solid var(--accent)",
+            display: "inline-flex",
+            width: "fit-content",
+          }}
+        >
+          <StarRating rating={rating} />
+        </div>
+      )}
 
       {/* Location */}
       <div className="flex items-center gap-2 mb-3">

@@ -3,6 +3,7 @@ import {
   index,
   jsonb,
   pgTable,
+  real,
   serial,
   text,
   timestamp,
@@ -49,6 +50,8 @@ export const scrapedJobs = pgTable(
     jobTypes: jsonb("job_types")
       .$type<string[]>()
       .default([]),
+
+    companyRating: real("company_rating"),
   },
   (table) => ({
     scrapedAtIdx: index("idx_scraped_at")

@@ -15,6 +15,20 @@
       "when": 1779702731604,
       "tag": "0001_married_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779812857341,
+      "tag": "0002_loving_swordsman",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779813606359,
+      "tag": "0003_bent_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

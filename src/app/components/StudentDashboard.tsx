@@ -7,7 +7,10 @@ import StudentSchoolFilter from "./StudentSchoolFilter";
 import ThemeToggle from "./ThemeToggle";
 import type { Job } from "./InternshipDashboard";
 
-const API_BASE = "https://sambhavvvvv-oppurtunityhub.hf.space";
+const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
+  ? "http://localhost:8000"
+  : (process.env.NEXT_PUBLIC_API_URL || "https://oh-internscrapper-oppurtunityhub.hf.space");
+const LOCAL_API = API_BASE;
 
 interface TimeframeData {
   jobs: Job[];
@@ -38,6 +41,9 @@ export default function StudentDashboard() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
+  const [companyRatings, setCompanyRatings] = useState<Record<string, number>>({});
+  const [ratingsLoading, setRatingsLoading] = useState(false);
+  const [ratingsError, setRatingsError] = useState("");
 
   // Every unique school name across every timeframe in the current payload,
   // sorted alphabetically, along with counts. Drives the filter dropdown options.
@@ -97,6 +103,37 @@ export default function StudentDashboard() {
       setSelectedSchools(pruned);
     }
   }, [allSchools, selectedSchools]);
+
+  const rateCompanies = async () => {
+    if (!data) return;
+    // Collect all unique non-empty company names across every timeframe
+    const companySet = new Set<string>();
+    for (const id of TIMEFRAME_IDS) {
+      for (const job of data[id]?.jobs ?? []) {
+        if (job.company) companySet.add(job.company);
+      }
+    }
+    if (companySet.size === 0) return;
+
+    setRatingsLoading(true);
+    setRatingsError("");
+    try {
+      const response = await fetch(`${LOCAL_API}/rate-companies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companies: Array.from(companySet) }),
+      });
+      if (!response.ok) {
+        throw new Error(`Rating request failed: ${response.status}`);
+      }
+      const result = await response.json();
+      setCompanyRatings(result.ratings ?? {});
+    } catch (err) {
+      setRatingsError(err instanceof Error ? err.message : "Rating failed");
+    } finally {
+      setRatingsLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -173,6 +210,53 @@ export default function StudentDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Rating Manager Link */}
+            <a
+              href="/ratings"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-200"
+              style={{
+                background: "var(--surface-1)",
+                color: "var(--foreground)",
+                border: "2px solid var(--card-border)",
+                textDecoration: "none",
+              }}
+              title="Manage company ratings"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              Ratings
+            </a>
+
+            {/* Rate Companies Button — visible only when data is loaded */}
+            {data && (
+              <button
+                id="rate-companies-btn"
+                onClick={rateCompanies}
+                disabled={ratingsLoading || loading}
+                title={ratingsError || "Rate companies using AI"}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-200"
+                style={{
+                  background: ratingsLoading ? "var(--surface-1)" : Object.keys(companyRatings).length > 0 ? "rgba(251,191,36,0.12)" : "var(--surface-1)",
+                  color: ratingsLoading ? "var(--muted)" : Object.keys(companyRatings).length > 0 ? "#f59e0b" : "var(--foreground)",
+                  border: `2px solid ${ratingsLoading ? "var(--card-border)" : Object.keys(companyRatings).length > 0 ? "#f59e0b" : "var(--card-border)"}`,
+                  cursor: ratingsLoading || loading ? "not-allowed" : "pointer",
+                  opacity: ratingsLoading || loading ? 0.6 : 1,
+                }}
+              >
+                {ratingsLoading ? (
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                )}
+                {ratingsLoading ? "Rating..." : Object.keys(companyRatings).length > 0 ? "Re-Rate" : "Rate Companies"}
+              </button>
+            )}
+
             {/* Refresh Button */}
             <button
               onClick={fetchData}
@@ -365,7 +449,16 @@ export default function StudentDashboard() {
                 {(filteredData[section.id]?.jobs || []).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {(filteredData[section.id]?.jobs || []).map((job, i) => (
-                      <JobCard key={`${section.id}-${i}`} job={job} index={i} />
+                      <JobCard
+                        key={`${section.id}-${i}`}
+                        job={job}
+                        index={i}
+                        rating={
+                          job.company
+                            ? (companyRatings[job.company] ?? job.company_rating ?? undefined)
+                            : undefined
+                        }
+                      />
                     ))}
                   </div>
                 ) : (

@@ -45,6 +45,7 @@ export interface JobPayload {
   schools?: string[];
   scraped_at?: string | null;
   keywords?: string | null;
+  company_rating?: number | null;
 }
 
 /**
@@ -144,6 +145,7 @@ function rowToPayload(row: ScrapedJob): JobPayload {
     schools: row.schools ?? [],
     scraped_at: row.scrapedAt ? row.scrapedAt.toISOString() : null,
     keywords: row.keywords,
+    company_rating: row.companyRating,
   };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import SearchForm from "./SearchForm";
 import type { SearchFilters } from "./SearchForm";
 import JobCard from "./JobCard";
@@ -11,7 +11,10 @@ import ThemeToggle from "./ThemeToggle";
 import AcademicNotice from "./AcademicNotice";
 import Footer from "./Footer";
 
-const API_BASE = "https://sambhavvvvv-oppurtunityhub.hf.space";
+const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
+  ? "http://localhost:8000"
+  : (process.env.NEXT_PUBLIC_API_URL || "https://oh-internscrapper-oppurtunityhub.hf.space");
+const LOCAL_API = API_BASE;
 
 export interface Job {
   title: string | null;
@@ -22,6 +25,7 @@ export interface Job {
   posted_datetime: string | null;
   programs: string[];
   schools: string[];
+  company_rating?: number | null; // persisted from DB after rating
 }
 
 type ScrapeStatus = "idle" | "loading" | "success" | "error";
@@ -38,6 +42,47 @@ export default function InternshipDashboard() {
   const [totalSearches, setTotalSearches] = useState(0);
   const [deduplicatedCount, setDeduplicatedCount] = useState(0);
   const [statusMessages, setStatusMessages] = useState<string[]>([]);
+
+  // Company ratings — populated automatically after scraping finishes
+  const [companyRatings, setCompanyRatings] = useState<Record<string, number>>({});
+  const [ratingsLoading, setRatingsLoading] = useState(false);
+  const [ratingsElapsed, setRatingsElapsed] = useState<number | null>(null);
+  const [ratingsError, setRatingsError] = useState("");
+
+  // Keep a ref to the live jobs list so the done-handler can read it without
+  // a stale closure (jobs state updates are async).
+  const jobsRef = useRef<Job[]>([]);
+  useEffect(() => { jobsRef.current = jobs; }, [jobs]);
+
+  const rateCompaniesAuto = useCallback(async (jobList: Job[]) => {
+    const companySet = new Set<string>();
+    for (const job of jobList) {
+      if (job.company) companySet.add(job.company);
+    }
+    if (companySet.size === 0) return;
+
+    setRatingsLoading(true);
+    setRatingsElapsed(null);
+    setRatingsError("");
+    setCompanyRatings({});
+    const ratingStart = Date.now();
+
+    try {
+      const response = await fetch(`${LOCAL_API}/rate-companies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companies: Array.from(companySet) }),
+      });
+      if (!response.ok) throw new Error(`Rating request failed: ${response.status}`);
+      const result = await response.json();
+      setCompanyRatings(result.ratings ?? {});
+      setRatingsElapsed(Math.round((Date.now() - ratingStart) / 1000));
+    } catch (err) {
+      setRatingsError(err instanceof Error ? err.message : "Rating failed");
+    } finally {
+      setRatingsLoading(false);
+    }
+  }, []);
 
   const [schools, setSchools] = useState<SchoolsData>({});
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
@@ -126,6 +171,9 @@ export default function InternshipDashboard() {
               setErrorMsg(`Found opportunities but the search was interrupted: ${chunk.error || "connection lost"}`);
             }
             setStatus("success");
+            // ── Auto-rate companies after scraping finishes ──────────
+            // Use the ref so we get the fully up-to-date job list
+            setTimeout(() => rateCompaniesAuto(jobsRef.current), 100);
           } else if (chunk.type === "error") {
             if (hasJobs) {
               setErrorMsg(`Found opportunities before the search ended: ${chunk.message || "Search failed"}`);
@@ -155,6 +203,11 @@ export default function InternshipDashboard() {
     setTotalSearches(0);
     setDeduplicatedCount(0);
     setStatusMessages([]);
+    // Reset ratings for the new scrape
+    setCompanyRatings({});
+    setRatingsElapsed(null);
+    setRatingsError("");
+    setRatingsLoading(false);
 
     setLastQuery({ keywords: filters.keywords, location: "Bengaluru metro" });
 
@@ -337,6 +390,51 @@ export default function InternshipDashboard() {
           statusMessages={statusMessages}
         />
 
+        {/* Rating Status Banner */}
+        {(ratingsLoading || ratingsElapsed !== null || ratingsError) && (
+          <div
+            className="mt-4 flex items-center gap-3 px-4 py-3 rounded-lg animate-fade-in-up"
+            style={{
+              background: ratingsError
+                ? "rgba(239,68,68,0.08)"
+                : ratingsLoading
+                ? "rgba(217,119,6,0.08)"
+                : "rgba(251,191,36,0.10)",
+              border: `2px solid ${
+                ratingsError ? "var(--error)" : ratingsLoading ? "var(--warning)" : "#f59e0b"
+              }`,
+            }}
+          >
+            {ratingsLoading ? (
+              <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: "var(--warning)" }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            ) : ratingsError ? (
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="var(--error)" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 shrink-0" fill="#f59e0b" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold" style={{ color: ratingsError ? "var(--error)" : ratingsLoading ? "var(--warning)" : "#f59e0b" }}>
+                {ratingsLoading
+                  ? "Rating companies with AI…"
+                  : ratingsError
+                  ? `Rating error: ${ratingsError}`
+                  : `Companies rated by AI ✓`}
+              </p>
+              {!ratingsLoading && !ratingsError && ratingsElapsed !== null && (
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                  {Object.keys(companyRatings).length} companies rated in {ratingsElapsed}s
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Source link */}
         {scrapeUrl && status === "success" && (
           <div className="mt-3 animate-slide-down">
@@ -405,7 +503,12 @@ export default function InternshipDashboard() {
         {(status === "success" || (status === "loading" && jobs.length > 0)) && filteredJobs.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8">
             {filteredJobs.map((job, i) => (
-              <JobCard key={i} job={job} index={i} />
+              <JobCard
+                key={i}
+                job={job}
+                index={i}
+                rating={job.company ? companyRatings[job.company] : undefined}
+              />
             ))}
 
             {/* Pulsing card appended at the end when still loading additional pages */}
