@@ -33,23 +33,23 @@
 
 /* ── Dark Mode ───────────────────────────────────── */
 .dark {
-  --background: #111827;
-  --foreground: #f9fafb;
-  --card: #1f2937;
-  --card-border: #f9fafb;
-  --card-hover: #374151;
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-border: #334155;
+  --card-hover: #334155;
   --accent: #a78bfa;
   --accent-light: #c4b5fd;
   --accent-dim: rgba(167, 139, 250, 0.15);
   --accent-glow: rgba(167, 139, 250, 0.3);
-  --muted: #9ca3af;
+  --muted: #94a3b8;
   --success: #34d399;
   --error: #f87171;
   --warning: #fbbf24;
-  --surface-1: #1f2937;
-  --surface-2: #374151;
-  --header-bg: #111827;
-  --shadow-color: #f9fafb;
+  --surface-1: #1e293b;
+  --surface-2: #334155;
+  --header-bg: #0f172a;
+  --shadow-color: #000000;
   --overlay-bg: rgba(0, 0, 0, 0.8);
 }
 
@@ -103,12 +103,14 @@ body {
   border: var(--border-width) solid var(--card-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-brutal);
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
 }
 .neo-card:hover {
-  transform: translate(-1px, -1px);
+  transform: translate(-2px, -2px);
   box-shadow: var(--shadow-brutal-lg);
+  border-color: var(--accent);
 }
 .neo-card:active {
   transform: translate(1px, 1px);
@@ -129,12 +131,14 @@ body {
   transition: transform 0.1s ease,
               box-shadow 0.1s ease,
               background 0.15s ease,
-              color 0.15s ease;
+              color 0.15s ease,
+              border-color 0.15s ease;
   cursor: pointer;
 }
 .neo-button:hover {
-  transform: translate(-1px, -1px);
+  transform: translate(-2px, -2px);
   box-shadow: 3px 3px 0 var(--shadow-color);
+  border-color: var(--accent);
 }
 .neo-button:active {
   transform: translate(1px, 1px);
@@ -145,6 +149,7 @@ body {
   opacity: 0.5;
   transform: none;
   box-shadow: var(--shadow-brutal-sm);
+  border-color: var(--card-border);
 }
 
 .neo-input {
@@ -162,6 +167,17 @@ body {
 .neo-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ── Dark Mode Glow & Premium Effects ──────────────── */
+.dark .neo-card:hover {
+  box-shadow: var(--shadow-brutal-lg), 0 0 25px var(--accent-dim);
+}
+.dark .neo-button:hover {
+  box-shadow: 3px 3px 0 var(--shadow-color), 0 0 15px var(--accent-dim);
+}
+.dark .neo-input:focus {
+  box-shadow: 0 0 0 3px var(--accent-dim), 0 0 15px var(--accent-glow);
 }
 
 .neo-chip {
