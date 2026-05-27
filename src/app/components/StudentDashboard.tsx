@@ -7,9 +7,11 @@ import StudentSchoolFilter from "./StudentSchoolFilter";
 import ThemeToggle from "./ThemeToggle";
 import type { Job } from "./InternshipDashboard";
 
-const API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
-  ? "http://localhost:8000"
-  : (process.env.NEXT_PUBLIC_API_URL || "https://oh-internscrapper-oppurtunityhub.hf.space");
+const API_BASE =
+  typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:8000"
+    : process.env.NEXT_PUBLIC_API_URL ||
+      "https://oh-internscrapper-oppurtunityhub.hf.space";
 const LOCAL_API = API_BASE;
 
 interface TimeframeData {
@@ -41,7 +43,9 @@ export default function StudentDashboard() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
-  const [companyRatings, setCompanyRatings] = useState<Record<string, number>>({});
+  const [companyRatings, setCompanyRatings] = useState<Record<string, number>>(
+    {},
+  );
   const [ratingsLoading, setRatingsLoading] = useState(false);
   const [ratingsError, setRatingsError] = useState("");
 
@@ -138,12 +142,15 @@ export default function StudentDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/student/jobs/all-timeframes?t=${Date.now()}`, {
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
+      const response = await fetch(
+        `${API_BASE}/student/jobs/all-timeframes?t=${Date.now()}`,
+        {
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        },
+      );
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.status}`);
       }
@@ -166,10 +173,10 @@ export default function StudentDashboard() {
   }, []);
 
   const formatLastUpdated = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   };
 
@@ -203,7 +210,10 @@ export default function StudentDashboard() {
               >
                 Student Dashboard
               </h1>
-              <p className="text-xs font-medium" style={{ color: "var(--muted)" }}>
+              <p
+                className="text-xs font-medium"
+                style={{ color: "var(--muted)" }}
+              >
                 Latest Opportunities
               </p>
             </div>
@@ -227,35 +237,6 @@ export default function StudentDashboard() {
               </svg>
               Ratings
             </a>
-
-            {/* Rate Companies Button — visible only when data is loaded
-            {data && (
-              <button
-                id="rate-companies-btn"
-                onClick={rateCompanies}
-                disabled={ratingsLoading || loading}
-                title={ratingsError || "Rate companies using AI"}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-200"
-                style={{
-                  background: ratingsLoading ? "var(--surface-1)" : Object.keys(companyRatings).length > 0 ? "rgba(251,191,36,0.12)" : "var(--surface-1)",
-                  color: ratingsLoading ? "var(--muted)" : Object.keys(companyRatings).length > 0 ? "#f59e0b" : "var(--foreground)",
-                  border: `2px solid ${ratingsLoading ? "var(--card-border)" : Object.keys(companyRatings).length > 0 ? "#f59e0b" : "var(--card-border)"}`,
-                  cursor: ratingsLoading || loading ? "not-allowed" : "pointer",
-                  opacity: ratingsLoading || loading ? 0.6 : 1,
-                }}
-              >
-                {ratingsLoading ? (
-                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                ) : (
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                )}
-                {ratingsLoading ? "Rating..." : Object.keys(companyRatings).length > 0 ? "Re-Rate" : "Rate Companies"}
-              </button>
-            )} */}
 
             {/* Refresh Button */}
             <button
@@ -289,15 +270,27 @@ export default function StudentDashboard() {
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold"
               style={{
-                background: loading ? "rgba(217, 119, 6, 0.08)" : error ? "rgba(239, 68, 68, 0.08)" : "rgba(5, 150, 105, 0.08)",
-                color: loading ? "var(--warning)" : error ? "var(--error)" : "var(--success)",
+                background: loading
+                  ? "rgba(217, 119, 6, 0.08)"
+                  : error
+                    ? "rgba(239, 68, 68, 0.08)"
+                    : "rgba(5, 150, 105, 0.08)",
+                color: loading
+                  ? "var(--warning)"
+                  : error
+                    ? "var(--error)"
+                    : "var(--success)",
                 border: `2px solid ${loading ? "var(--warning)" : error ? "var(--error)" : "var(--success)"}`,
               }}
             >
               <span
                 className={`w-2 h-2 rounded-full ${loading ? "animate-breathe" : ""}`}
                 style={{
-                  background: loading ? "var(--warning)" : error ? "var(--error)" : "var(--success)",
+                  background: loading
+                    ? "var(--warning)"
+                    : error
+                      ? "var(--error)"
+                      : "var(--success)",
                 }}
               />
               {loading ? "Loading..." : error ? "Error" : "Live"}
@@ -316,7 +309,9 @@ export default function StudentDashboard() {
       <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-8">
         {/* Controls row: last-updated timestamp + school filter */}
         {data && (
-          <div className={`mb-6 flex items-center justify-between gap-3 flex-wrap transition-opacity duration-300 ${loading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+          <div
+            className={`mb-6 flex items-center justify-between gap-3 flex-wrap transition-opacity duration-300 ${loading ? "opacity-60 pointer-events-none" : "opacity-100"}`}
+          >
             <p className="text-sm" style={{ color: "var(--muted)" }}>
               {lastUpdated
                 ? `Last updated: ${formatLastUpdated(lastUpdated)}`
@@ -334,8 +329,17 @@ export default function StudentDashboard() {
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 p-4 rounded-lg" style={{ background: "rgba(239, 68, 68, 0.08)", border: "2px solid var(--error)" }}>
-            <p className="text-sm font-medium" style={{ color: "var(--error)" }}>
+          <div
+            className="mb-6 p-4 rounded-lg"
+            style={{
+              background: "rgba(239, 68, 68, 0.08)",
+              border: "2px solid var(--error)",
+            }}
+          >
+            <p
+              className="text-sm font-medium"
+              style={{ color: "var(--error)" }}
+            >
               {error}
             </p>
           </div>
@@ -368,33 +372,39 @@ export default function StudentDashboard() {
 
         {/* Content Sections */}
         {filteredData && (
-          <div className={`space-y-12 transition-all duration-500 ${loading ? "animate-progress-pulse pointer-events-none" : ""}`}>
+          <div
+            className={`space-y-12 transition-all duration-500 ${loading ? "animate-progress-pulse pointer-events-none" : ""}`}
+          >
             {[
               {
                 id: "1_hour" as const,
                 title: "Latest Opportunities (Last Hour)",
-                desc: (c: number) => `${c} opportunities found in the last hour`,
+                desc: (c: number) =>
+                  `${c} opportunities found in the last hour`,
                 empty: "No new opportunities in the last hour",
                 isRecent: true,
               },
               {
                 id: "2_hours" as const,
                 title: "1 - 2 Hours Ago",
-                desc: (c: number) => `${c} opportunities found 1 to 2 hours ago`,
+                desc: (c: number) =>
+                  `${c} opportunities found 1 to 2 hours ago`,
                 empty: "No opportunities from 1-2 hours ago",
                 isRecent: false,
               },
               {
                 id: "5_hours" as const,
                 title: "2 - 5 Hours Ago",
-                desc: (c: number) => `${c} opportunities found 2 to 5 hours ago`,
+                desc: (c: number) =>
+                  `${c} opportunities found 2 to 5 hours ago`,
                 empty: "No opportunities from 2-5 hours ago",
                 isRecent: false,
               },
               {
                 id: "24_hours" as const,
                 title: "5 - 24 Hours Ago",
-                desc: (c: number) => `${c} opportunities from the past 24 hours`,
+                desc: (c: number) =>
+                  `${c} opportunities from the past 24 hours`,
                 empty: "No opportunities from the past 24 hours",
                 isRecent: false,
               },
@@ -408,26 +418,39 @@ export default function StudentDashboard() {
               {
                 id: "1_month" as const,
                 title: "1 - 4 Weeks Ago",
-                desc: (c: number) => `${c} opportunities found 1 to 4 weeks ago`,
+                desc: (c: number) =>
+                  `${c} opportunities found 1 to 4 weeks ago`,
                 empty: "No opportunities from the past month",
                 isRecent: false,
-              }
-            ].map(section => (
+              },
+            ].map((section) => (
               <section key={section.id}>
                 <div className="flex items-center gap-3 mb-6">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center"
                     style={{
-                      background: section.isRecent ? "var(--accent-dim)" : "var(--surface-1)",
-                      border: section.isRecent ? "2px solid var(--accent)" : "2px solid var(--card-border)",
+                      background: section.isRecent
+                        ? "var(--accent-dim)"
+                        : "var(--surface-1)",
+                      border: section.isRecent
+                        ? "2px solid var(--accent)"
+                        : "2px solid var(--card-border)",
                     }}
                   >
                     {section.isRecent ? (
-                      <svg className="w-4 h-4" fill="var(--accent)" viewBox="0 0 24 24">
+                      <svg
+                        className="w-4 h-4"
+                        fill="var(--accent)"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
                     ) : (
-                      <svg className="w-4 h-4" fill="var(--muted)" viewBox="0 0 24 24">
+                      <svg
+                        className="w-4 h-4"
+                        fill="var(--muted)"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
                         <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
                       </svg>
@@ -455,7 +478,9 @@ export default function StudentDashboard() {
                         index={i}
                         rating={
                           job.company
-                            ? (companyRatings[job.company] ?? job.company_rating ?? undefined)
+                            ? (companyRatings[job.company] ??
+                              job.company_rating ??
+                              undefined)
                             : undefined
                         }
                       />
@@ -484,7 +509,10 @@ export default function StudentDashboard() {
                         />
                       </svg>
                     </div>
-                    <p className="text-sm font-medium" style={{ color: "var(--muted)" }}>
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: "var(--muted)" }}
+                    >
                       {section.empty}
                     </p>
                   </div>
@@ -496,10 +524,10 @@ export default function StudentDashboard() {
 
         {/* Empty State - No data, or filter excluded everything */}
         {filteredData &&
-          TIMEFRAME_IDS.every(
-            (id) => (filteredData[id]?.count || 0) === 0,
-          ) && (
-            <div className={`flex flex-col items-center justify-center py-20 animate-fade-in-up transition-opacity duration-500 ${loading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+          TIMEFRAME_IDS.every((id) => (filteredData[id]?.count || 0) === 0) && (
+            <div
+              className={`flex flex-col items-center justify-center py-20 animate-fade-in-up transition-opacity duration-500 ${loading ? "opacity-60 pointer-events-none" : "opacity-100"}`}
+            >
               <div
                 className="w-16 h-16 rounded-xl flex items-center justify-center mb-6"
                 style={{

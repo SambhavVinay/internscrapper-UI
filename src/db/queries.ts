@@ -298,3 +298,55 @@ export async function cleanupOldJobs(daysOld = 7): Promise<number> {
 
   return deleted.length;
 }
+
+/**
+ * Fetch jobs from the last 30 days in one query and bin them by timeframe.
+ * Matches the logic in the Python backend database.py.
+ */
+export async function getBinnedJobs(): Promise<Record<string, { jobs: JobPayload[]; count: number }>> {
+  const now = new Date();
+  const threshold = new Date(now.getTime() - 720 * 60 * 60 * 1000); // 720 hours = 30 days
+
+  const rows = await db
+    .select()
+    .from(scrapedJobs)
+    .where(gte(scrapedJobs.postedDatetime, threshold))
+    .orderBy(desc(scrapedJobs.postedDatetime));
+
+  const t_1: JobPayload[] = [];
+  const t_2: JobPayload[] = [];
+  const t_5: JobPayload[] = [];
+  const t_24: JobPayload[] = [];
+  const t_168: JobPayload[] = [];
+  const t_720: JobPayload[] = [];
+
+  for (const row of rows) {
+    if (!row.postedDatetime) continue;
+    const job = rowToPayload(row);
+    const hours = (now.getTime() - row.postedDatetime.getTime()) / (60 * 60 * 1000);
+
+    if (hours <= 1) {
+      t_1.push(job);
+    } else if (hours <= 2) {
+      t_2.push(job);
+    } else if (hours <= 5) {
+      t_5.push(job);
+    } else if (hours <= 24) {
+      t_24.push(job);
+    } else if (hours <= 168) {
+      t_168.push(job);
+    } else if (hours <= 720) {
+      t_720.push(job);
+    }
+  }
+
+  return {
+    "1_hour": { jobs: t_1, count: t_1.length },
+    "2_hours": { jobs: t_2, count: t_2.length },
+    "5_hours": { jobs: t_5, count: t_5.length },
+    "24_hours": { jobs: t_24, count: t_24.length },
+    "1_week": { jobs: t_168, count: t_168.length },
+    "1_month": { jobs: t_720, count: t_720.length },
+  };
+}
+
