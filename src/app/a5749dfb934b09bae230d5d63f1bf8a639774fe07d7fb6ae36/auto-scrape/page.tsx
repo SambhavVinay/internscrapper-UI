@@ -432,6 +432,43 @@ export default function AutoScrapeAnalyticsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Stop Auto-Scrape Button */}
+            {activeRun && (
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch(`${API_BASE}/admin/stop-scrape`, { method: "POST" });
+                    // Immediately refresh history to reflect the stop
+                    fetchHistory();
+                  } catch (err) {
+                    console.error("Failed to stop auto-scrape", err);
+                  }
+                }}
+                title="Stop the hourly scraper and cancel the current sweep"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200"
+                style={{
+                  background: "rgba(239,68,68,0.10)",
+                  color: "var(--error)",
+                  border: "2px solid var(--error)",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--error)";
+                  e.currentTarget.style.color = "#ffffff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(239,68,68,0.10)";
+                  e.currentTarget.style.color = "var(--error)";
+                }}
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                </svg>
+                Stop Auto-Scrape
+              </button>
+            )}
+
             {/* Live status pill */}
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold"
