@@ -361,11 +361,8 @@ export default function AutoScrapeAnalyticsPage() {
   const completedRuns = history.filter((s) => !s.is_running && !s.cancelled).length;
   const activeRun = history.find((s) => s.is_running);
 
-  // Uptime since first run
-  const firstRun = history.length > 0 ? history[history.length - 1] : null;
-  const uptimeSeconds = firstRun
-    ? Math.round(Date.now() / 1000 - firstRun.started_at)
-    : 0;
+  // Uptime — only counts while a sweep is actively running
+  const uptimeSeconds = activeRun?.elapsed_seconds ?? 0;
 
   // Determine admin dashboard base path
   const adminPath =
